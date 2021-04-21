@@ -1,0 +1,28 @@
+.topnav {
+    background-color: white;
+    overflow: hidden;
+    border-bottom: black 1px solid;
+}
+
+.topnav a {
+    text-decoration: none;
+    text-align: center;
+    font-size: 20px;
+}
+
+.topnav li {
+    display: inline-block;
+    list-style: none;
+    padding: 5px 15px;;
+
+}
+
+#top-data-savings {
+    margin-left: 500%;
+}
+
+#top-data-checking {
+    margin-left: 450%;
+}
+
+
