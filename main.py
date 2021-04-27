@@ -1,5 +1,5 @@
 # it will read env variables from .env file 
-from dotenv import main
+from dotenv import load_dotenv
 '''
     This will parse the .env file and load the variable as
     environment variables
@@ -28,7 +28,7 @@ PLAID_COUNTRY_CODES = os.getenv('PLAID_COUNTRY_CODES')
 # for the empty parsed environment variables that exist
 def empty_or_none(field):
     value = os.getenv(field)
-    if value == None or len(val) == 0:
+    if value == None or len(value) == 0:
         return None
     return value
 
@@ -46,11 +46,22 @@ client = plaid.Client( client_id=PLAID_CLIENT_ID,
 access_token = None     # token used to access an item 
 item_id = None          # the unique id for an item  
 
+
+@app.route('/api/info', methods=['POST'])
+def info():
+  global access_token
+  global item_id
+  return jsonify({
+    'item_id': item_id,
+    'access_token': access_token,
+    'products': PLAID_PRODUCTS
+  })
+
 '''
     This route allows the link token to be be created which will be used 
     to open the link for users on the frontend
 '''
-@app.route( 'api/create_link_token', method=['POST'])
+@app.route( '/api/create_link_token', methods=['POST'])
 def create_link_token():
     try:
         # linkToken is just an undefined function and we implement create func on it 
@@ -78,7 +89,7 @@ def create_link_token():
     between my server to plaid, but to access the credentials we need 
     to trade the link with an access token
 '''
-@app.route( 'api/set_access_token', methods='[POST]')
+@app.route( '/api/set_access_token', methods=['POST'])
 def get_access_token():
     global access_token
     global item_id
@@ -101,7 +112,7 @@ def get_access_token():
     Instantly retrieve and verify bank account information
     to set up online payments via ACH and more.
 '''
-@app.route( 'api/auth', methods=['GET'])
+@app.route( '/api/auth', methods=['GET'])
 def get_auth():
     try:
         auth_response = client.Auth.get(access_token)
@@ -114,7 +125,7 @@ def get_auth():
     getting the date for each transaction. 
     match access token to access the start and end date of transactions 
 '''
-@app.route('api/transactions', methods=['GET'])
+@app.route('/api/transactions', methods=['GET'])
 def get_transactions():
     #pulling transactions from the last 30 days 
     start_date = '{:%m-%d-%Y}'.format(datetime.datetime.now() + datetime.timedelta(-30))
@@ -129,7 +140,7 @@ def get_transactions():
 '''
     Get the user's identity for their item
 '''
-@app.route('api/identity', methods=['GET'])
+@app.route('/api/identity', methods=['GET'])
 def get_identity():
     try:
         identity_response = client.Identity.get(access_token)
@@ -142,7 +153,7 @@ def get_identity():
 '''
     get real time balance data for each item's account
 '''
-@app.route('api/balance', methods=['GET'])
+@app.route('/api/balance', methods=['GET'])
 def get_balance():
     try:
         balance_response = client.Balance.get(access_token)
@@ -154,7 +165,7 @@ def get_balance():
 '''
     retrieves an item's actual account
 '''
-@app.route('api/accounts', methods=['GET'])
+@app.route('/api/accounts', methods=['GET'])
 def get_accounts():
     try:
         accounts_response = clients.Accounts.get(access_token)
@@ -164,7 +175,7 @@ def get_accounts():
     return jsonify(accounts_response)
 
 '''.DS_Store'''
-@app.route('api/assets', methods=['GET'])
+@app.route('/api/assets', methods=['GET'])
 def get_assets():
     try:
         asset_report_create_response = client.AssetReport.create([access_token], 10)
@@ -206,7 +217,7 @@ def get_assets():
         'pdf': base64.b64encode(asset_report_pdf).decode('utf-8'),
     })
 
-@app.route('api/item', methods=['GET'])
+@app.route('/api/item', methods=['GET'])
 def get_item():
     global access_token
     item_response = client.Item.get(access_token)
@@ -215,6 +226,12 @@ def get_item():
     pretty_print_response(institution_response)
 
     return jsonify({'error': None, 'item': item_response['item'], 'institution': institution_response['institution']})
+
+
+@app.route('/')
+def home():
+    return render_template('login.html')
+
 
 def pretty_print_response(response):
     print(json.dumps(response, indent=2, sort_keys=True))
@@ -225,11 +242,8 @@ def format_error(e):
 if __name__ == '__main__':
     app.run(port=os.getenv('PORT','8000'))
 
-'''
-@app.route('/')
-def home():
-    return render_template('index.html')
 
+''''
 @app.route('/login', methods= ['GET', 'POST'])
 def login():
     error = None

@@ -1,19 +1,55 @@
-{% extends "layout.html" %}
-{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plaid Login</title>
+</head>
+<body>
+    <h1>Plaid Login</h1>
+    <button id="plaid-button">Link Account</button>
+</body>
+</html>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+<script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+<script>
+    (async ($) => {
+        const fetchLinkToken = async () => {
+            const response = await fetch( '/create-link-token');
+            const { linkToken } = await response.json();
+            return linkToken;
+        };
 
-<div class="login-container">
-    <h1>Login</h1>
+        const handler = Plaid.create({
+            // 1. Pass a new_link to Link endpoint.
+            token: await fetchLinkToken(),
+            onSuccess: async function(publicToken, metadata) {
+                console.log(publicToken);
+                console.log(metadata);
+                //2a. Send the public token to app server.com
+                // The onSuccess function is called when the user has successfully
+                // authenticated and selected an account to use 
+                await fetch('/token-exchange', {
+                    method:'POST',
+                    body: JSON.stringify({ public_token:public_token}),
+                    headers: {
+                        'Content Type':'application/json',
+                    },
+                });
+            },
+            onExit: async (err, metadata) => {
+                //2b. Gracefully handle the invalid link token error. A link token 
+                // can become invalidated if ti expires, has already been used
+                // for a link session, or is associated with too many invalid logins
+                console.log(err);
+                console.log(metadata);
+            },
+            onEvent: async (metadata) => {
+                console.log(metadata);
+            },
+        });
 
-    <form action="" method="post">
-        <input type="text" placeholder="username" name="username"
-        value="{{ request.form.username }}">
-        <input type="password" placeholder="password" name="password"
-        value="{{ request.form.password }}">
-        <input class="btn btn-default" type="submit" value="Login">
-    </form>
-    {% if error %}
-        <p class="error"><strong>Error: </strong>{{ error }}</p>
-    {% endif %}
-</div>
-
-{% endblock %}
+        $('#plaid-button').on('click', function(e) {handler.open(); });
+        })(jQuery);
+</script>
